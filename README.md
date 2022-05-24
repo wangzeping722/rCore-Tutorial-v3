@@ -5,6 +5,8 @@ rCore-Tutorial API Docs.  See the [API Docs of Ten OSes ](#OS-API-DOCS)
 
 Official QQ group number: 735045051
 
+d47nV3fgZm9idWR
+
 ## news
 - 25/01/2022: Version 3.6.0 is on the way! Now we directly update the code on chX branches, please periodically check if there are any updates.
 
