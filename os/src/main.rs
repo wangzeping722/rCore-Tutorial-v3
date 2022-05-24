@@ -54,13 +54,13 @@ pub fn rust_main() -> ! {
 
     warn!("Deallocate frame: {:#x}", stext as usize);
     info!("hello world");
-    debug!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
-    debug!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
-    debug!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
-    debug!(
+    info!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
+    info!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
+    info!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
+    info!(
         "boot_stack [{:#x}, {:#x})",
         boot_stack as usize, boot_stack_top as usize
     );
-    debug!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    info!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     panic!("Shutdown machine!");
 }
