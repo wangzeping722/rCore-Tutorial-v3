@@ -1,16 +1,20 @@
 //! batch subsystem
-
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use core::arch::asm;
+use core::time;
 use lazy_static::*;
 use log::info;
 
-const USER_STACK_SIZE: usize = 4096 * 2;    // 用户栈大小 8k
+const USER_STACK_SIZE: usize = 4096;    // 用户栈大小 8k
 const KERNEL_STACK_SIZE: usize = 4096 * 2;  // 内核栈大小 8k
 const MAX_APP_NUM: usize = 16;
 const APP_BASE_ADDRESS: usize = 0x80400000;
 const APP_SIZE_LIMIT: usize = 0x20000;  // 128kb大小
+
+const SYSCALL_GET_TASK_INFO: usize = 1;
+const SYSCALL_WRITE: usize = 64;
+const SYSCALL_EXIT: usize = 93;
 
 // 地址对齐
 #[repr(align(4096))]
@@ -56,6 +60,7 @@ struct AppManager {
     num_app: usize,
     current_app: usize,
     app_start: [usize; MAX_APP_NUM + 1],
+    syscall_count_map: [usize; 200],
 }
 
 impl AppManager {
@@ -96,6 +101,20 @@ impl AppManager {
     pub fn move_to_next_app(&mut self) {
         self.current_app += 1;
     }
+
+    pub fn statistic_syscall_count(&mut self, syscall_id: usize){
+        self.syscall_count_map[syscall_id] += 1
+    }
+
+    pub fn get_current_app_address(&self) ->(usize, usize) {
+        return (APP_BASE_ADDRESS, APP_BASE_ADDRESS+self.app_start[self.current_app+1]-self.app_start[self.current_app])
+    }
+
+    pub fn print_statistic_syscall_count(&self) {
+        info!("[kernel] syscall: {}, count: {}", SYSCALL_WRITE ,self.syscall_count_map[SYSCALL_WRITE]);
+        info!("[kernel] syscall: {}, count: {}", SYSCALL_GET_TASK_INFO ,self.syscall_count_map[SYSCALL_GET_TASK_INFO]);
+        info!("[kernel] syscall: {}, count: {}", SYSCALL_EXIT ,self.syscall_count_map[SYSCALL_EXIT]);
+    }
 }
 
 lazy_static! {
@@ -114,6 +133,7 @@ lazy_static! {
                 num_app,
                 current_app: 0,
                 app_start,
+                syscall_count_map: [0; 200],
             }
         })
     };
@@ -132,6 +152,23 @@ pub fn print_app_info() {
 /// get current app id
 pub fn get_current_app() -> usize {
     APP_MANAGER.exclusive_access().get_current_app()
+}
+
+/// get current app id
+pub fn get_current_task() -> usize {
+    APP_MANAGER.exclusive_access().get_current_app()
+}
+
+pub fn statistic_syscall_count(syscall_id: usize) {
+    APP_MANAGER.exclusive_access().statistic_syscall_count(syscall_id)
+}
+
+pub fn print_statistic_syscall_count() {
+    APP_MANAGER.exclusive_access().print_statistic_syscall_count()
+}
+
+pub fn get_current_app_address() ->(usize, usize) {
+    APP_MANAGER.exclusive_access().get_current_app_address()
 }
 
 /// run next app

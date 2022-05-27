@@ -14,7 +14,7 @@
 
 mod context;
 
-use crate::batch::run_next_app;
+use crate::batch::{run_next_app, get_current_app, print_statistic_syscall_count, statistic_syscall_count};
 use crate::syscall::syscall;
 use core::arch::global_asm;
 use riscv::register::{
@@ -41,9 +41,12 @@ pub fn init() {
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     let scause = scause::read(); // get trap cause 产生trap的原因
     let stval = stval::read(); // get extra value 附加信息
-    log::debug!("[kernel][trap_handler] scause: {:?}, stval: {:?}", scause.cause(), stval);
+    // log::debug!("[kernel][trap_handler] scause: {:?}, stval: {:?}", scause.cause(), stval);
+    
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
+            statistic_syscall_count(cx.x[17]);
+            print_statistic_syscall_count();
             // 处理系统调用
             cx.sepc += 4;   // 设置spec为下一条指令的地址
             // 寄存器的值保存在 trapContext 中，所以可以直接从上下文中取值
