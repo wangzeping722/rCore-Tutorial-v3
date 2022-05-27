@@ -3,7 +3,7 @@ use riscv::register::sstatus::{self, Sstatus, SPP};
 #[repr(C)]
 pub struct TrapContext {
     /// general regs[0..31]
-    pub x: [usize; 32],
+    pub x: [usize; 32], // 保存32个寄存器的值
     /// CSR sstatus      
     pub sstatus: Sstatus,
     /// CSR sepc

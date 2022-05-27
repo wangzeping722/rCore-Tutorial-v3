@@ -4,13 +4,15 @@ use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use core::arch::asm;
 use lazy_static::*;
+use log::info;
 
-const USER_STACK_SIZE: usize = 4096 * 2;
-const KERNEL_STACK_SIZE: usize = 4096 * 2;
+const USER_STACK_SIZE: usize = 4096 * 2;    // 用户栈大小 8k
+const KERNEL_STACK_SIZE: usize = 4096 * 2;  // 内核栈大小 8k
 const MAX_APP_NUM: usize = 16;
 const APP_BASE_ADDRESS: usize = 0x80400000;
-const APP_SIZE_LIMIT: usize = 0x20000;
+const APP_SIZE_LIMIT: usize = 0x20000;  // 128kb大小
 
+// 地址对齐
 #[repr(align(4096))]
 struct KernelStack {
     data: [u8; KERNEL_STACK_SIZE],
@@ -30,12 +32,15 @@ static USER_STACK: UserStack = UserStack {
 
 impl KernelStack {
     fn get_sp(&self) -> usize {
+        // 获取栈顶指针
         self.data.as_ptr() as usize + KERNEL_STACK_SIZE
     }
     pub fn push_context(&self, cx: TrapContext) -> &'static mut TrapContext {
+        // 在操作系统栈上存储从 U -> S 的上下文
         let cx_ptr = (self.get_sp() - core::mem::size_of::<TrapContext>()) as *mut TrapContext;
         unsafe {
             *cx_ptr = cx;
+            info!("[kernel] KernelStack splow: {:#X} sp: {:#X}, sptop: {:#X}",self.data.as_ptr() as usize, cx_ptr as usize, cx_ptr as usize+core::mem::size_of::<TrapContext>());
         }
         unsafe { cx_ptr.as_mut().unwrap() }
     }
@@ -66,6 +71,7 @@ impl AppManager {
         }
     }
 
+    /// 加载app的数据到指定的位置
     unsafe fn load_app(&self, app_id: usize) {
         if app_id >= self.num_app {
             panic!("All applications completed!");
@@ -123,7 +129,13 @@ pub fn print_app_info() {
     APP_MANAGER.exclusive_access().print_app_info();
 }
 
+/// get current app id
+pub fn get_current_app() -> usize {
+    APP_MANAGER.exclusive_access().get_current_app()
+}
+
 /// run next app
+/// 内核运行
 pub fn run_next_app() -> ! {
     let mut app_manager = APP_MANAGER.exclusive_access();
     let current_app = app_manager.get_current_app();
@@ -137,11 +149,13 @@ pub fn run_next_app() -> ! {
     extern "C" {
         fn __restore(cx_addr: usize);
     }
+    // 运行新程序
     unsafe {
         __restore(KERNEL_STACK.push_context(TrapContext::app_init_context(
             APP_BASE_ADDRESS,
             USER_STACK.get_sp(),
         )) as *const _ as usize);
     }
+    // 不可达
     panic!("Unreachable in batch::run_current_app!");
 }

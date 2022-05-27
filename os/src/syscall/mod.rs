@@ -9,7 +9,7 @@
 //! For clarity, each single syscall is implemented as its own function, named
 //! `sys_` then the name of the syscall. You can find functions like this in
 //! submodules, and you should also implement syscalls this way.
-
+const SYSCALL_ADD: usize = 1;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 
@@ -20,6 +20,7 @@ use fs::*;
 use process::*;
 
 /// handle syscall exception with `syscall_id` and other arguments
+/// 处理系统调用
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),

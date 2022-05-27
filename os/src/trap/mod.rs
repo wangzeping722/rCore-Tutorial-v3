@@ -37,12 +37,16 @@ pub fn init() {
 
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
+/// 处理中断，异常，系统调用
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
-    let scause = scause::read(); // get trap cause
-    let stval = stval::read(); // get extra value
+    let scause = scause::read(); // get trap cause 产生trap的原因
+    let stval = stval::read(); // get extra value 附加信息
+    log::debug!("[kernel][trap_handler] scause: {:?}, stval: {:?}", scause.cause(), stval);
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
-            cx.sepc += 4;
+            // 处理系统调用
+            cx.sepc += 4;   // 设置spec为下一条指令的地址
+            // 寄存器的值保存在 trapContext 中，所以可以直接从上下文中取值
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {

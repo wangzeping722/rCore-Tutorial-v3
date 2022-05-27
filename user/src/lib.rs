@@ -11,7 +11,7 @@ mod syscall;
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
     clear_bss();
-    exit(main());
+    exit(main());   //入口函数，返回之后会执行系统调用，批处理系统会运行下一个程序
     panic!("unreachable after sys_exit!");
 }
 
@@ -36,6 +36,7 @@ use syscall::*;
 pub fn write(fd: usize, buf: &[u8]) -> isize {
     sys_write(fd, buf)
 }
+
 pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
 }

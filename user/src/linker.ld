@@ -7,7 +7,7 @@ SECTIONS
 {
     . = BASE_ADDRESS;
     .text : {
-        *(.text.entry)
+        *(.text.entry)  /*定位入口函数*/
         *(.text .text.*)
     }
     .rodata : {

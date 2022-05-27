@@ -13,6 +13,7 @@ const SBI_SHUTDOWN: usize = 8;
 // const SBI_REMOTE_SFENCE_VMA_ASID: usize = 7;
 
 ///  handle SBI call with `which` SBI_id and other arguments
+/// 从S状态切换到M状态
 #[inline(always)]
 fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
     let mut ret;
