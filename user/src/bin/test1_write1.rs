@@ -3,6 +3,7 @@
 
 #[macro_use]
 extern crate user_lib;
+use core::arch::asm;
 use user_lib::{write, STDOUT};
 const DATA_STRING: &str = "string from data section\n";
 
