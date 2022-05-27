@@ -7,5 +7,6 @@ extern crate user_lib;
 #[no_mangle]
 fn main() -> i32 {
     println!("Hello, world!");
+    user_lib::get_task_info();
     0
 }

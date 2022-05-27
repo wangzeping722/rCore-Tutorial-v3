@@ -1,8 +1,8 @@
 use core::arch::asm;
 
+const SYSCALL_GET_TASK_INFO: usize = 1;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
-const SYSCALL_ADD: usize = 1;
 
 
 /// 系统调用
@@ -30,6 +30,6 @@ pub fn sys_exit(exit_code: i32) -> isize {
     syscall(SYSCALL_EXIT, [exit_code as usize, 0, 0])
 }
 
-pub fn sys_add(num: usize) -> usize {
-    syscall(SYSCALL_ADD, [num, 0, 0]) as usize
+pub fn sys_get_task_info() -> isize {
+    syscall(SYSCALL_GET_TASK_INFO, [0, 0, 0])
 }
