@@ -3,24 +3,24 @@ use crate::trap::TrapContext;
 use crate::sync::UPSafeCell;
 use core::arch::asm;
 
-const USER_STACK_SIZE: usize = 4096 * 2;
+const USER_STACK_SIZE: usize = 4096;
 const KERNEL_STACK_SIZE: usize = 4096 * 2;
 const MAX_APP_NUM: usize = 16;
 const APP_BASE_ADDRESS: usize = 0x80400000;
-const APP_SIZE_LIMIT: usize = 0x20000;
+const APP_SIZE_LIMIT: usize = 0x20000; // 128k
 
 #[repr(align(4096))]
-struct KernelStack {
+pub struct KernelStack {
     data: [u8; KERNEL_STACK_SIZE],
 }
 
 #[repr(align(4096))]
-struct UserStack {
+pub struct UserStack {
     data: [u8; USER_STACK_SIZE],
 }
 
-static KERNEL_STACK: KernelStack = KernelStack { data: [0; KERNEL_STACK_SIZE] };
-static USER_STACK: UserStack = UserStack { data: [0; USER_STACK_SIZE] };
+pub static KERNEL_STACK: KernelStack = KernelStack { data: [0; KERNEL_STACK_SIZE] };
+pub static USER_STACK: UserStack = UserStack { data: [0; USER_STACK_SIZE] };
 
 impl KernelStack {
     fn get_sp(&self) -> usize {
@@ -34,7 +34,7 @@ impl KernelStack {
 }
 
 impl UserStack {
-    fn get_sp(&self) -> usize {
+    pub fn get_sp(&self) -> usize {
         self.data.as_ptr() as usize + USER_STACK_SIZE
     }
 }
@@ -81,6 +81,10 @@ impl AppManager {
     pub fn move_to_next_app(&mut self) {
         self.current_app += 1;
     }
+
+    pub fn get_current_app_address(&self) ->(usize, usize) {
+        return (APP_BASE_ADDRESS, APP_BASE_ADDRESS+APP_SIZE_LIMIT)
+    }
 }
 
 lazy_static! {
@@ -108,6 +112,11 @@ pub fn init() {
 pub fn print_app_info() {
     APP_MANAGER.exclusive_access().print_app_info();
 }
+
+pub fn get_current_app_address() ->(usize, usize) {
+    APP_MANAGER.exclusive_access().get_current_app_address()
+}
+
 
 pub fn run_next_app() -> ! {
     let mut app_manager = APP_MANAGER.exclusive_access();
