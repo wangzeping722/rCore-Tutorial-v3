@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["init",""],["level_to_color_code",""]],"struct":[["SimpleLogger",""]]});
