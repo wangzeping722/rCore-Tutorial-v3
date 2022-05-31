@@ -18,6 +18,7 @@ use crate::syscall::syscall;
 use crate::task::{exit_current_and_run_next, suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
 use core::arch::global_asm;
+use riscv::register::sstatus::{self, SPP};
 use riscv::register::{
     mtvec::TrapMode,
     scause::{self, Exception, Interrupt, Trap},
@@ -37,6 +38,7 @@ pub fn init() {
 }
 
 /// timer interrupt enabled
+/// 开启时钟中断
 pub fn enable_timer_interrupt() {
     unsafe {
         sie::set_stimer();
@@ -46,6 +48,9 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+    // 可以在内核态响应中断            
+    // unsafe {sstatus::set_sie();}
+    let sstatus = sstatus::read();
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
@@ -62,7 +67,10 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             exit_current_and_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            // 处理系统时钟
             set_next_trigger();
+            // 中断当前进程，然后运行下一个进程
+            println!("[kernel] switch to next process {:?}", sstatus.spp());
             suspend_current_and_run_next();
         }
         _ => {

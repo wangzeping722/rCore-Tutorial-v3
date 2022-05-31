@@ -1,3 +1,4 @@
+# 异常，中断都会通过这个__alltraps进入
 .altmacro
 .macro SAVE_GP n
     sd x\n, \n*8(sp)
