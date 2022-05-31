@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["MICRO_PER_SEC",""],["MSEC_PER_SEC",""],["TICKS_PER_SEC",""]],"fn":[["get_time","read the `mtime` register"],["get_time_ms","get current time in milliseconds"],["get_time_us",""],["set_next_trigger","set the next timer interrupt 设置下一次触发时钟中断的时间"]]});
