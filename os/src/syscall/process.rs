@@ -1,8 +1,12 @@
+use alloc::task;
+
 use crate::task::{
     suspend_current_and_run_next,
-    exit_current_and_run_next,
+    exit_current_and_run_next, get_current_task,
 };
 use crate::timer::get_time_us;
+
+use super::TaskInfo;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -34,5 +38,13 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
             usec: us % 1_000_000,
         };
     }
+    0
+}
+
+pub fn sys_task_info(id: usize, task_info: &mut TaskInfo) -> isize {
+    task_info.id = id;
+    task_info.time = get_time_us() - get_current_task().startTime;
+    task_info.status = get_current_task().task_status;
+    task_info.call = get_current_task().call;
     0
 }

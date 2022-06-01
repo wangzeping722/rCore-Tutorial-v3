@@ -1,3 +1,7 @@
+use core::arch::asm;
+
+use crate::TaskInfo;
+
 use super::{Stat, TimeVal};
 
 pub const SYSCALL_OPENAT: usize = 56;
@@ -20,6 +24,7 @@ pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SPAWN: usize = 400;
 pub const SYSCALL_MAIL_READ: usize = 401;
 pub const SYSCALL_MAIL_WRITE: usize = 402;
+pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_DUP: usize = 24;
 pub const SYSCALL_PIPE: usize = 59;
 
@@ -176,4 +181,9 @@ pub fn sys_dup(fd: usize) -> isize {
 
 pub fn sys_pipe(pipe: &mut [usize]) -> isize {
     syscall(SYSCALL_PIPE, [pipe.as_mut_ptr() as usize, 0, 0])
+}
+
+// 通过系统调用获取任务信息
+pub fn sys_task_info(id: usize, task_info: &mut TaskInfo) -> isize {
+    syscall(SYSCALL_TASK_INFO, [id, task_info as *const _ as usize, 0])
 }

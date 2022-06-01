@@ -2,11 +2,14 @@ mod context;
 mod switch;
 mod task;
 
+use core::borrow::BorrowMut;
+
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
+use crate::syscall::SyscallInfo;
 use lazy_static::*;
 use switch::__switch;
-use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskStatus, MAX_SYSCALL_NUM};
 use crate::sync::UPSafeCell;
 
 pub use context::TaskContext;
@@ -27,13 +30,20 @@ lazy_static! {
         let mut tasks = [
             TaskControlBlock {
                 task_cx: TaskContext::zero_init(),
-                task_status: TaskStatus::UnInit
+                task_status: TaskStatus::UnInit,
+                id: 0,
+                call: [SyscallInfo{id:0, times:0}; MAX_SYSCALL_NUM],
+                startTime: 0,
             };
             MAX_APP_NUM
         ];
         for i in 0..num_app {
             tasks[i].task_cx = TaskContext::goto_restore(init_app_cx(i));
             tasks[i].task_status = TaskStatus::Ready;
+            tasks[i].id = i;
+            for i in 0..MAX_SYSCALL_NUM {
+                tasks[i].call[i].id = i;
+            }
         }
         TaskManager {
             num_app,
@@ -106,6 +116,11 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    fn get_current_task(&self) -> &mut TaskControlBlock {
+        let mut inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].borrow_mut()
+    }
 }
 
 pub fn run_first_task() {
@@ -132,4 +147,8 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+pub fn get_current_task() -> &'static mut TaskControlBlock {
+    TASK_MANAGER.get_current_task()
 }

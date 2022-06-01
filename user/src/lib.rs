@@ -102,6 +102,33 @@ impl Default for Stat {
     }
 }
 
+const MAX_SYSCALL_NUM: usize = 100000000;
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct TaskInfo {
+    pub id: usize,
+    pub status: TaskStatus,
+    pub call: [SyscallInfo; MAX_SYSCALL_NUM],
+    pub time: usize,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct SyscallInfo {
+    id: usize,
+    times: usize,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum TaskStatus {
+    UnInit,
+    Ready,
+    Running,
+    Exited,
+}
+
+
 bitflags! {
     pub struct StatMode: u32 {
         const NULL  = 0;
@@ -236,4 +263,8 @@ pub fn dup(fd: usize) -> isize {
 }
 pub fn pipe(pipe_fd: &mut [usize]) -> isize {
     sys_pipe(pipe_fd)
+}
+
+pub fn task_info(id: usize, task_info: &mut TaskInfo) -> isize {
+    sys_task_info(id, task_info)
 }
