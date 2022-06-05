@@ -23,6 +23,7 @@ pub fn sys_yield() -> isize {
 }
 
 pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
+    // 要把值写到用户空间中
     let _us = get_time_us();
     // unsafe {
     //     *ts = TimeVal {
