@@ -31,6 +31,7 @@ __alltraps:
     # read user stack from sscratch and save it in TrapContext
     csrr t2, sscratch
     sd t2, 2*8(sp)
+    # 恢复内核信息
     # load kernel_satp into t0
     ld t0, 34*8(sp)
     # load trap_handler into t1
@@ -41,11 +42,13 @@ __alltraps:
     csrw satp, t0
     sfence.vma
     # jump to trap_handler
+    # 跳转到trap handler
     jr t1
 
 __restore:
     # a0: *TrapContext in user space(Constant); a1: user space token
     # switch to user space
+    // 切换回用户地址空间 
     csrw satp, a1
     sfence.vma
     csrw sscratch, a0

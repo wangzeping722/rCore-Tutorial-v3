@@ -23,7 +23,7 @@ extern "C" {
     fn sbss_with_stack();
     fn ebss();
     fn ekernel();
-    fn strampoline();
+    fn strampoline();   // 跳板地址
 }
 
 lazy_static! {
@@ -33,6 +33,7 @@ lazy_static! {
 }
 
 /// memory set structure, controls virtual-memory space
+/// 任务的内存结构
 pub struct MemorySet {
     page_table: PageTable,
     areas: Vec<MapArea>,
@@ -49,6 +50,7 @@ impl MemorySet {
         self.page_table.token()
     }
     /// Assume that no conflicts.
+    /// 插入段
     pub fn insert_framed_area(
         &mut self,
         start_va: VirtAddr,
@@ -60,6 +62,7 @@ impl MemorySet {
             None,
         );
     }
+
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
@@ -67,7 +70,9 @@ impl MemorySet {
         }
         self.areas.push(map_area);
     }
+
     /// Mention that trampoline is not collected by areas.
+    /// 映射，用户空间和内核都会映射到同一个虚拟地址
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
@@ -76,6 +81,8 @@ impl MemorySet {
         );
     }
     /// Without kernel stacks.
+    /// 没有内核栈
+    /// 内核栈不直接映射到一起，是因为需要
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
         // map trampoline
@@ -88,6 +95,8 @@ impl MemorySet {
             ".bss [{:#x}, {:#x})",
             sbss_with_stack as usize, ebss as usize
         );
+        // 内核地址空间，直接地址映射
+        println!(".ekernel {:#x}", ekernel as usize);
         println!("mapping .text section");
         memory_set.push(
             MapArea::new(
@@ -140,8 +149,10 @@ impl MemorySet {
         );
         memory_set
     }
+
     /// Include sections in elf and trampoline and TrapContext and user stack,
     /// also returns user_sp and entry point.
+    /// 解析应用elf文件
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         // map trampoline
@@ -150,6 +161,7 @@ impl MemorySet {
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
+        // elf魔数
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
         let ph_count = elf_header.pt2.ph_count();
         let mut max_end_vpn = VirtPageNum(0);
@@ -169,6 +181,7 @@ impl MemorySet {
                 if ph_flags.is_execute() {
                     map_perm |= MapPermission::X;
                 }
+                // 映射段, bss 段可能在物理文件中大小位0，但是加载到内存后应该由大小
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
                 memory_set.push(
@@ -177,10 +190,12 @@ impl MemorySet {
                 );
             }
         }
+        // 处理用户站
         // map user stack with U flags
         let max_end_va: VirtAddr = max_end_vpn.into();
         let mut user_stack_bottom: usize = max_end_va.into();
         // guard page
+        // 保护页
         user_stack_bottom += PAGE_SIZE;
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
         memory_set.push(
@@ -208,7 +223,10 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+
+    // 开启MMU地址转换
     pub fn activate(&self) {
+        // 写入虚拟页表
         let satp = self.page_table.token();
         unsafe {
             satp::write(satp);
@@ -223,9 +241,9 @@ impl MemorySet {
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
     vpn_range: VPNRange,
-    data_frames: BTreeMap<VirtPageNum, FrameTracker>,
-    map_type: MapType,
-    map_perm: MapPermission,
+    data_frames: BTreeMap<VirtPageNum, FrameTracker>,   // 虚拟页号与页帧的映射
+    map_type: MapType,          // 映射方式
+    map_perm: MapPermission,    // 控制逻辑段的访问方式
 }
 
 impl MapArea {
@@ -256,7 +274,9 @@ impl MapArea {
                 self.data_frames.insert(vpn, frame);
             }
         }
+        // 设置page权限
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
+        // 将虚拟地址映射到物理地址
         page_table.map(vpn, ppn, pte_flags);
     }
     #[allow(unused)]
@@ -279,6 +299,7 @@ impl MapArea {
     }
     /// data: start-aligned but maybe with shorter length
     /// assume that all frames were cleared before
+    /// 数据拷贝
     pub fn copy_data(&mut self, page_table: &mut PageTable, data: &[u8]) {
         assert_eq!(self.map_type, MapType::Framed);
         let mut start: usize = 0;
@@ -308,6 +329,7 @@ pub enum MapType {
     Framed,
 }
 
+// 页表项标志位的子集
 bitflags! {
     /// map permission corresponding to that in pte: `R W X U`
     pub struct MapPermission: u8 {

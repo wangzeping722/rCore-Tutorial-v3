@@ -55,7 +55,9 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler() -> ! {
+    // 设置在内核中的中断处理入口
     set_kernel_trap_entry();
+    // 获取用户空间的trap_cx的物理地址
     let cx = current_trap_cx();
     let scause = scause::read();
     let stval = stval::read();
@@ -105,7 +107,7 @@ pub fn trap_return() -> ! {
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
     unsafe {
         asm!(
-            "fence.i",
+            "fence.i",  // 清空指令缓存
             "jr {restore_va}",             // jump to new addr of __restore asm function
             restore_va = in(reg) restore_va,
             in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context

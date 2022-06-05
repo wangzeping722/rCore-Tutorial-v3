@@ -70,6 +70,7 @@ impl PageTable {
             frames: vec![frame],
         }
     }
+
     /// Temporarily used to get arguments from user space.
     pub fn from_token(satp: usize) -> Self {
         Self {
@@ -77,6 +78,8 @@ impl PageTable {
             frames: Vec::new(),
         }
     }
+
+    // 根据vpn， 找到一个可用的物理页表项
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
@@ -87,15 +90,21 @@ impl PageTable {
                 result = Some(pte);
                 break;
             }
+            // 当前页表项不存在
             if !pte.is_valid() {
+                // 创建页表项
                 let frame = frame_alloc().unwrap();
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
+                // 存放物理页帧
                 self.frames.push(frame);
             }
+            // 先一个页表
             ppn = pte.ppn();
         }
         result
     }
+
+    // 找到对应的页表项
     fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
@@ -113,24 +122,32 @@ impl PageTable {
         }
         result
     }
+
+    // 维护虚拟地址到物理地址的映射
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = self.find_pte_create(vpn).unwrap();
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
+
+    // 释放内存
     #[allow(unused)]
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = self.find_pte(vpn).unwrap();
         assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }
+
+    // 地址翻译
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
+
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
     }
+
 }
 
 /// translate a pointer to a mutable u8 Vec through page table
@@ -142,6 +159,7 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
     while start < end {
         let start_va = VirtAddr::from(start);
         let mut vpn = start_va.floor();
+        // 获得物理页
         let ppn = page_table.translate(vpn).unwrap().ppn();
         vpn.step();
         let mut end_va: VirtAddr = vpn.into();

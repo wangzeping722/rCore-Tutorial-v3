@@ -8,8 +8,15 @@ const LEN: usize = 100;
 
 static mut S: [u64; LEN] = [0u64; LEN];
 
+// core::arch::global_asm!(include_str!("../a.S"));
+
 #[no_mangle]
 unsafe fn main() -> i32 {
+    // extern "C" {
+    //     fn __fn();
+    // }
+    // __fn();
+
     let p = 3u64;
     let m = 998244353u64;
     let iter: usize = 300000;

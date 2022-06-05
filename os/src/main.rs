@@ -16,7 +16,7 @@
 //! userspace.
 
 #![deny(missing_docs)]
-#![deny(warnings)]
+// #![deny(warnings)]
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
@@ -68,6 +68,7 @@ pub fn rust_main() -> ! {
     clear_bss();
     println!("[kernel] Hello, world!");
     mm::init();
+    // mm::heap_allocator::heap_test();
     println!("[kernel] back to world!");
     mm::remap_test();
     trap::init();

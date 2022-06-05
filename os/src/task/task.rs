@@ -8,7 +8,7 @@ use crate::trap::{trap_handler, TrapContext};
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     pub task_cx: TaskContext,
-    pub memory_set: MemorySet,
+    pub memory_set: MemorySet,  // 地址空间
     pub trap_cx_ppn: PhysPageNum,
     pub base_size: usize,
 }
@@ -23,6 +23,7 @@ impl TaskControlBlock {
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        // 获取ppn对应的虚拟地址
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()

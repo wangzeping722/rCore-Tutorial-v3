@@ -9,11 +9,13 @@ use core::fmt::{self, Debug, Formatter};
 use lazy_static::*;
 
 /// manage a frame which has the same lifecycle as the tracker
+/// 管理物理页
 pub struct FrameTracker {
     pub ppn: PhysPageNum,
 }
 
 impl FrameTracker {
+    // 清空物理页
     pub fn new(ppn: PhysPageNum) -> Self {
         // page cleaning
         let bytes_array = ppn.get_bytes_array();
@@ -93,6 +95,7 @@ lazy_static! {
 }
 
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
+/// 分配物理页
 pub fn init_frame_allocator() {
     extern "C" {
         fn ekernel();

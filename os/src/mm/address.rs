@@ -99,6 +99,7 @@ impl From<VirtPageNum> for usize {
 }
 
 impl VirtAddr {
+    // 获得虚拟页号
     pub fn floor(&self) -> VirtPageNum {
         VirtPageNum(self.0 / PAGE_SIZE)
     }
@@ -151,7 +152,9 @@ impl From<PhysPageNum> for PhysAddr {
 
 impl VirtPageNum {
     pub fn indexes(&self) -> [usize; 3] {
+        // 获取虚拟页号
         let mut vpn = self.0;
+        // 虚拟页号的三级页表项
         let mut idx = [0usize; 3];
         for i in (0..3).rev() {
             idx[i] = vpn & 511;
@@ -187,6 +190,7 @@ impl StepByOne for VirtPageNum {
 
 #[derive(Copy, Clone)]
 /// a simple range structure for type T
+/// 范围
 pub struct SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
