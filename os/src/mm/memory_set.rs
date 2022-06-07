@@ -190,6 +190,18 @@ impl MemorySet {
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
+
+    pub fn unmap(&mut self, vpn: VirtPageNum) {
+        self.areas[0].unmap_one(&mut self.page_table, vpn)
+    }
+
+    // pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+    //     self.page_table.
+    // }
+
+    pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+        self.page_table.find_vpn(vpn)
+    }
 }
 
 pub struct MapArea {

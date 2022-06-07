@@ -2,7 +2,9 @@ mod context;
 mod switch;
 mod task;
 
+use crate::config::PAGE_SIZE;
 use crate::loader::{get_num_app, get_app_data};
+use crate::mm::{MemorySet, VirtPageNum, MapPermission, VirtAddr};
 use crate::trap::TrapContext;
 use crate::sync::UPSafeCell;
 use lazy_static::*;
@@ -115,6 +117,68 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        let mut inner = TASK_MANAGER.inner.exclusive_access();
+        let current_task = inner.current_task;
+        println!("current task {}", current_task);
+        let from: usize = start/PAGE_SIZE;
+        let to: usize = (start+len)/PAGE_SIZE;
+
+        let memory_set = &mut inner.tasks[current_task].memory_set;
+        for vpn in from..to {
+            if true == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+                return -1;
+            }
+        }
+        
+        let permission = match port {
+            1 => MapPermission::U | MapPermission::R,
+            2 => MapPermission::U | MapPermission::W,
+            3 => MapPermission::U | MapPermission::R | MapPermission::W,
+            4 => MapPermission::U | MapPermission::X,
+            5 => MapPermission::U | MapPermission::R | MapPermission::X,
+            6 => MapPermission::U | MapPermission::X | MapPermission::W,
+            _ => MapPermission::U | MapPermission::R | MapPermission::W | MapPermission::X,
+        };
+
+        memory_set.insert_framed_area(VirtAddr::from(start), VirtAddr::from(start+len), permission);
+
+        for vpn in from..to {
+            if false == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+                return -1;
+            }
+        }
+        0
+    }
+
+    fn munmap(&self, start: usize, len: usize) -> isize {
+        let mut inner = TASK_MANAGER.inner.exclusive_access();
+        let current_task = inner.current_task;
+        let from: usize = start/PAGE_SIZE;
+        let to: usize = (start+len)/PAGE_SIZE;
+  
+        let memory_set = &mut inner.tasks[current_task].memory_set;
+
+        for vpn in from..to {
+            if false == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+                return -1;
+            }
+        }
+
+        for vpn in from..to {
+            memory_set.unmap(VirtPageNum::from(vpn));
+        }
+
+        for vpn in from..to {
+            if true == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+                return -1;
+            }
+        }
+        
+        return 0
+    }
+
 }
 
 pub fn run_first_task() {
@@ -151,6 +215,10 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
     TASK_MANAGER.get_current_trap_cx()
 }
 
-// pub fn get_current_app_mmset() -> &'static crate::mm::MemorySet {
-//     TASK_MANAGER.get_current_app_mmset()
-// }
+pub fn mmap(start: usize, len: usize, port: usize) -> isize {
+    TASK_MANAGER.mmap(start, len, port)
+}
+
+pub fn munmap(start: usize, len: usize) -> isize {
+    TASK_MANAGER.munmap(start, len)
+}

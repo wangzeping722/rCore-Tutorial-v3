@@ -1,9 +1,9 @@
+use crate::config::PAGE_SIZE;
 use crate::mm::translated_byte_buffer;
-use crate::{mm, task};
 use crate::task::{
     suspend_current_and_run_next,
     exit_current_and_run_next,
-    current_user_token
+    current_user_token, mmap, munmap
 };
 use crate::timer::get_time_us;
 
@@ -47,4 +47,60 @@ pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
         };
     }
     0
+}
+
+const MAX_MAP_SIZE: usize = 1 << 30;
+
+pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
+    // 参数校验
+    if len == 0 {
+        return 0;
+    }
+
+    if len > MAX_MAP_SIZE {
+        return -1;
+    }
+
+    // 地址未对齐
+    if start & PAGE_SIZE - 1 != 0 {
+        return -1
+    }
+
+    if ((port & !0x7) != 0) || ((port & 0x7) == 0) {
+        return  -1;
+    }
+
+    // 长度向上对齐取整
+    let len = (len+PAGE_SIZE-1)&(!(PAGE_SIZE-1));
+
+    println!("start mmap @@@@@@@@@@@@@@@@@@@@@@@@@ {}", &len);
+    let ret = mmap(start, len, port);
+    println!("end mmap @@@@@@@@@@@@@@@@@@@@@@@@@");
+
+    ret
+}
+
+pub fn sys_munmap(start: usize, len: usize) -> isize {
+    // 参数校验
+    if len == 0 {
+        return 0;
+    }
+
+    if len > MAX_MAP_SIZE {
+        return -1;
+    }
+
+    // 地址未对齐
+    if start & PAGE_SIZE - 1 != 0 {
+        return -1
+    }
+
+    // 长度向上对齐取整
+    let len = (len+PAGE_SIZE-1)&(!(PAGE_SIZE-1));
+
+    println!("start unmap ######################### {}", &len);
+    let ret = munmap(start, len);
+    println!("end unmap #########################");
+
+    ret
 }

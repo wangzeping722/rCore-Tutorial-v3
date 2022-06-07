@@ -74,7 +74,7 @@ impl PageTable {
             frames: Vec::new(),
         }
     }
-    fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
+    pub fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
@@ -93,7 +93,7 @@ impl PageTable {
         }
         result
     }
-    fn find_pte(&self, vpn: VirtPageNum) -> Option<&PageTableEntry> {
+    pub fn find_pte(&self, vpn: VirtPageNum) -> Option<&PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
         let mut result: Option<&PageTableEntry> = None;
@@ -128,6 +128,13 @@ impl PageTable {
     }
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
+    }
+
+    pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+        match self.find_pte(vpn) {
+            None => false,
+            Some(x) => x.is_valid(),
+        }
     }
 }
 
