@@ -11,6 +11,7 @@ mod syscall;
 use buddy_system_allocator::LockedHeap;
 use syscall::*;
 
+// 提前把内存映射好
 const USER_HEAP_SIZE: usize = 16384;
 
 static mut HEAP_SPACE: [u8; USER_HEAP_SIZE] = [0; USER_HEAP_SIZE];
@@ -63,9 +64,12 @@ pub fn fork() -> isize {
 pub fn exec(path: &str) -> isize {
     sys_exec(path)
 }
+
+/// wait 等待任意子进程退出
 pub fn wait(exit_code: &mut i32) -> isize {
     loop {
         match sys_waitpid(-1, exit_code as *mut _) {
+            // -2 表示可以继续等待
             -2 => {
                 yield_();
             }

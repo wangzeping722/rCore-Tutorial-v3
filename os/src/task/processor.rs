@@ -7,6 +7,7 @@ use crate::trap::TrapContext;
 use alloc::sync::Arc;
 use lazy_static::*;
 ///Processor management structure
+/// CPU的抽象，
 pub struct Processor {
     ///The task currently executing on the current processor
     current: Option<Arc<TaskControlBlock>>,
@@ -41,6 +42,7 @@ lazy_static! {
 }
 ///The main part of process execution and scheduling
 ///Loop `fetch_task` to get the process that needs to run, and switch the process through `__switch`
+/// 调度代码的实现
 pub fn run_tasks() {
     loop {
         let mut processor = PROCESSOR.exclusive_access();
@@ -57,6 +59,8 @@ pub fn run_tasks() {
             drop(processor);
             unsafe {
                 __switch(idle_task_cx_ptr, next_task_cx_ptr);
+                // 从switch 返回
+                // println!("hhhhhhhhhhh####### return from switch ######################");
             }
         }
     }
@@ -84,6 +88,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 }
 ///Return to idle control flow for new scheduling
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
+    // 获取当前处理器对象
     let mut processor = PROCESSOR.exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);

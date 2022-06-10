@@ -39,9 +39,11 @@ pub use processor::{
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
     // There must be an application running.
+    // 当前任务
     let task = take_current_task().unwrap();
 
     // ---- access current TCB exclusively
+    // 内部tcb
     let mut task_inner = task.inner_exclusive_access();
     let task_cx_ptr = &mut task_inner.task_cx as *mut TaskContext;
     // Change status to Ready

@@ -48,6 +48,7 @@ pub fn main() -> i32 {
             }
             BS | DL => {
                 if !line.is_empty() {
+                    // 处理退格
                     print!("{}", BS as char);
                     print!(" ");
                     print!("{}", BS as char);

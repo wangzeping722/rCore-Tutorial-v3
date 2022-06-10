@@ -27,15 +27,18 @@ pub fn sys_getpid() -> isize {
 
 pub fn sys_fork() -> isize {
     let current_task = current_task().unwrap();
+    // 创建新任务
     let new_task = current_task.fork();
     let new_pid = new_task.pid.0;
     // modify trap context of new_task, because it returns immediately after switching
     let trap_cx = new_task.inner_exclusive_access().get_trap_cx();
     // we do not have to move to next instruction since we have done it before
     // for child process, fork returns 0
+    // 把新进程的fork调用的返回值设置成 0 
     trap_cx.x[10] = 0;
     // add new task to scheduler
     add_task(new_task);
+    // 当前系统调用返回 新进程的 pid
     new_pid as isize
 }
 

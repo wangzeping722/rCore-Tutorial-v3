@@ -10,6 +10,7 @@ pub struct PidAllocator {
     recycled: Vec<usize>,
 }
 
+// pid 分配器
 impl PidAllocator {
     ///Create an empty `PidAllocator`
     pub fn new() -> Self {
@@ -19,6 +20,7 @@ impl PidAllocator {
         }
     }
     ///Allocate a pid
+    /// 如果存在旧的handle，直接分配，否则用新的
     pub fn alloc(&mut self) -> PidHandle {
         if let Some(pid) = self.recycled.pop() {
             PidHandle(pid)
@@ -58,6 +60,7 @@ pub fn pid_alloc() -> PidHandle {
 }
 
 /// Return (bottom, top) of a kernel stack in kernel space.
+/// 返回应用的栈空间
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     let top = TRAMPOLINE - app_id * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
@@ -70,6 +73,7 @@ pub struct KernelStack {
 
 impl KernelStack {
     ///Create a kernelstack from pid
+    ///映射应用的内核栈空间
     pub fn new(pid_handle: &PidHandle) -> Self {
         let pid = pid_handle.0;
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(pid);
@@ -87,6 +91,7 @@ impl KernelStack {
         T: Sized,
     {
         let kernel_stack_top = self.get_top();
+        // 把值压到栈顶
         let ptr_mut = (kernel_stack_top - core::mem::size_of::<T>()) as *mut T;
         unsafe {
             *ptr_mut = value;

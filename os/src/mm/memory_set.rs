@@ -60,7 +60,9 @@ impl MemorySet {
             None,
         );
     }
+
     ///Remove `MapArea` that starts with `start_vpn`
+    /// 去掉映射
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self
             .areas
@@ -80,6 +82,7 @@ impl MemorySet {
         self.areas.push(map_area);
     }
     /// Mention that trampoline is not collected by areas.
+    /// 映射跳板位置
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
@@ -220,6 +223,7 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+
     ///Clone a same `MemorySet`
     pub fn from_existed_user(user_space: &MemorySet) -> MemorySet {
         let mut memory_set = Self::new_bare();
@@ -230,6 +234,7 @@ impl MemorySet {
             let new_area = MapArea::from_another(area);
             memory_set.push(new_area, None);
             // copy data from another space
+            // 数据拷贝
             for vpn in area.vpn_range {
                 let src_ppn = user_space.translate(vpn).unwrap().ppn();
                 let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
@@ -282,6 +287,8 @@ impl MapArea {
             map_perm,
         }
     }
+
+    // 拷贝端
     pub fn from_another(another: &MapArea) -> Self {
         Self {
             vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
@@ -292,6 +299,7 @@ impl MapArea {
     }
     pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         let ppn: PhysPageNum;
+        // 找到物理页进行映射
         match self.map_type {
             MapType::Identical => {
                 ppn = PhysPageNum(vpn.0);

@@ -32,6 +32,7 @@ macro_rules! println {
     }
 }
 
+// 读取一个字符
 pub fn getchar() -> u8 {
     let mut c = [0u8; 1];
     read(STDIN, &mut c);

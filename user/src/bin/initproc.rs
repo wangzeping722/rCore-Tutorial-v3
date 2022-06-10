@@ -9,8 +9,10 @@ use user_lib::{exec, fork, wait, yield_};
 #[no_mangle]
 fn main() -> i32 {
     if fork() == 0 {
+        // 执行shell进程
         exec("user_shell\0");
     } else {
+        // 收集僵尸进程
         loop {
             let mut exit_code: i32 = 0;
             let pid = wait(&mut exit_code);

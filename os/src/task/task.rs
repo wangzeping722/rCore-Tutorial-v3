@@ -11,7 +11,7 @@ use core::cell::RefMut;
 
 pub struct TaskControlBlock {
     // immutable
-    pub pid: PidHandle,
+    pub pid: PidHandle, // 存储pid
     pub kernel_stack: KernelStack,
     // mutable
     inner: UPSafeCell<TaskControlBlockInner>,
@@ -20,12 +20,12 @@ pub struct TaskControlBlock {
 pub struct TaskControlBlockInner {
     pub trap_cx_ppn: PhysPageNum,
     pub base_size: usize,
-    pub task_cx: TaskContext,
-    pub task_status: TaskStatus,
+    pub task_cx: TaskContext,   // 保存暂停任务上下文
+    pub task_status: TaskStatus,    // 进程状态
     pub memory_set: MemorySet,
-    pub parent: Option<Weak<TaskControlBlock>>,
+    pub parent: Option<Weak<TaskControlBlock>>, // 指向父进程
     pub children: Vec<Arc<TaskControlBlock>>,
-    pub exit_code: i32,
+    pub exit_code: i32, // 当前进程退出的状态码
 }
 
 impl TaskControlBlockInner {
@@ -116,11 +116,16 @@ impl TaskControlBlock {
         );
         // **** release inner automatically
     }
+
+    /// fork 系统调用的实现
     pub fn fork(self: &Arc<TaskControlBlock>) -> Arc<TaskControlBlock> {
         // ---- access parent PCB exclusively
+        // 当前进程是父进程
         let mut parent_inner = self.inner_exclusive_access();
         // copy user space(include trap context)
+        // 拷贝当前进程的地址空间
         let memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
+        // 获取trap上下文的物理地址
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
