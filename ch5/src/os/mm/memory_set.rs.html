@@ -671,7 +671,7 @@
 <span class="doccomment">/// map area structure, controls a contiguous piece of virtual memory</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MapArea</span> {
     <span class="ident">vpn_range</span>: <span class="ident">VPNRange</span>,
-    <span class="ident">data_frames</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">VirtPageNum</span>, <span class="ident">FrameTracker</span><span class="op">&gt;</span>,
+    <span class="ident">data_frames</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">VirtPageNum</span>, <span class="ident">FrameTracker</span><span class="op">&gt;</span>,   <span class="comment">// 当MapArea被回收之后，地址空间也会回收</span>
     <span class="ident">map_type</span>: <span class="ident">MapType</span>,
     <span class="ident">map_perm</span>: <span class="ident">MapPermission</span>,
 }

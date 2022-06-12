@@ -101,6 +101,7 @@
 <span id="96">96</span>
 <span id="97">97</span>
 <span id="98">98</span>
+<span id="99">99</span>
 </pre><pre class="rust"><code><span class="doccomment">//!Implementation of [`Processor`] and Intersection of control flow</span>
 <span class="kw">use</span> <span class="ident"><span class="kw">super</span>::__switch</span>;
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">fetch_task</span>, <span class="ident">TaskStatus</span>};
@@ -163,7 +164,8 @@
             <span class="kw">unsafe</span> {
                 <span class="ident">__switch</span>(<span class="ident">idle_task_cx_ptr</span>, <span class="ident">next_task_cx_ptr</span>);
                 <span class="comment">// 从switch 返回</span>
-                <span class="comment">// println!(&quot;hhhhhhhhhhh####### return from switch ######################&quot;);</span>
+                <span class="comment">// let task = PROCESSOR.exclusive_access().current().unwrap();</span>
+                <span class="comment">// println!(&quot;hhhhhhhhhhh####### return from switch {} ######################&quot;, task.pid.0);</span>
             }
         }
     }

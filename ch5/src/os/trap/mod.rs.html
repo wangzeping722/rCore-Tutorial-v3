@@ -140,6 +140,7 @@
 <span id="135">135</span>
 <span id="136">136</span>
 <span id="137">137</span>
+<span id="138">138</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Trap handling functionality</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! For rCore, we have a single trap entry point, namely `__alltraps`. At</span>
@@ -206,6 +207,7 @@
             <span class="comment">// get system call return value</span>
             <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">syscall</span>(<span class="ident">cx</span>.<span class="ident">x</span>[<span class="number">17</span>], [<span class="ident">cx</span>.<span class="ident">x</span>[<span class="number">10</span>], <span class="ident">cx</span>.<span class="ident">x</span>[<span class="number">11</span>], <span class="ident">cx</span>.<span class="ident">x</span>[<span class="number">12</span>]]);
             <span class="comment">// cx is changed during sys_exec, so we have to call it again</span>
+            <span class="comment">// 原来的cx可能已经失效，需要重新获取</span>
             <span class="ident">cx</span> <span class="op">=</span> <span class="ident">current_trap_cx</span>();
             <span class="ident">cx</span>.<span class="ident">x</span>[<span class="number">10</span>] <span class="op">=</span> <span class="ident">result</span> <span class="kw">as</span> <span class="ident">usize</span>;
         }
