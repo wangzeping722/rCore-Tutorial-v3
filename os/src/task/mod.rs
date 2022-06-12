@@ -5,7 +5,7 @@ mod manager;
 mod processor;
 mod pid;
 
-use crate::loader::get_app_data_by_name;
+use crate::{loader::get_app_data_by_name, config::PAGE_SIZE, mm::{VirtPageNum, MapPermission, VirtAddr}};
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 use alloc::sync::Arc;
@@ -20,9 +20,12 @@ pub use processor::{
     current_trap_cx,
     take_current_task,
     schedule,
+    spawn
 };
 pub use manager::add_task;
 pub use pid::{PidHandle, pid_alloc, KernelStack};
+
+use self::manager::TASK_MANAGER;
 
 pub fn suspend_current_and_run_next() {
     // There must be an application running.
@@ -83,4 +86,62 @@ lazy_static! {
 
 pub fn add_initproc() {
     add_task(INITPROC.clone());
+}
+
+pub fn mmap(start: usize, len: usize, port: usize) -> isize {
+    let current_task = current_task().unwrap();
+    let from: usize = start/PAGE_SIZE;
+    let to: usize = (start+len)/PAGE_SIZE;
+
+    let memory_set = &mut current_task.inner_exclusive_access().memory_set;
+    for vpn in from..to {
+        if true == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+            return -1;
+        }
+    }
+    
+    let permission = match port {
+        1 => MapPermission::U | MapPermission::R,
+        2 => MapPermission::U | MapPermission::W,
+        3 => MapPermission::U | MapPermission::R | MapPermission::W,
+        4 => MapPermission::U | MapPermission::X,
+        5 => MapPermission::U | MapPermission::R | MapPermission::X,
+        6 => MapPermission::U | MapPermission::X | MapPermission::W,
+        _ => MapPermission::U | MapPermission::R | MapPermission::W | MapPermission::X,
+    };
+
+    memory_set.insert_framed_area(VirtAddr::from(start), VirtAddr::from(start+len), permission);
+
+    for vpn in from..to {
+        if false == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+            return -1;
+        }
+    }
+    0
+}
+
+pub fn munmap(start: usize, len: usize) -> isize {
+    let current_task = current_task().unwrap();
+    let from: usize = start/PAGE_SIZE;
+    let to: usize = (start+len)/PAGE_SIZE;
+
+    let memory_set = &mut current_task.inner_exclusive_access().memory_set;
+
+    for vpn in from..to {
+        if false == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+            return -1;
+        }
+    }
+
+    for vpn in from..to {
+        memory_set.unmap(VirtPageNum::from(vpn));
+    }
+
+    for vpn in from..to {
+        if true == memory_set.find_vpn(VirtPageNum::from(vpn)) {
+            return -1;
+        }
+    }
+    
+    return 0
 }

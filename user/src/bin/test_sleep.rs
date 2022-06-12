@@ -12,6 +12,7 @@ use user_lib::{get_time, yield_};
 
 #[no_mangle]
 fn main() -> i32 {
+    // 测试当前时间是否正常工作
     let current_time = get_time();
     assert!(current_time > 0);
     println!("get_time OK! {}", current_time);
@@ -19,6 +20,7 @@ fn main() -> i32 {
     while get_time() < wait_for {
         yield_();
     }
+    println!("sleep get_time ! {}", get_time());
     println!("Test sleep OK!");
     0
 }

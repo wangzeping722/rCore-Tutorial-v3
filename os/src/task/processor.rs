@@ -1,4 +1,4 @@
-use super::{TaskContext, TaskControlBlock};
+use super::{TaskContext, TaskControlBlock, add_task};
 use alloc::sync::Arc;
 use lazy_static::*;
 use super::{fetch_task, TaskStatus};
@@ -87,4 +87,27 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
             idle_task_cx_ptr,
         );
     }
+}
+
+pub fn spawn(data: &[u8]) -> isize {
+    // 根据elf数据创建进程
+    let task = Arc::new(TaskControlBlock::new(data));
+
+    // 获取当前进程
+    let current_task = current_task().unwrap();
+
+    // 将新分配的进程的parent设置为当前进程
+    let mut task_inner = task.inner_exclusive_access();
+    task_inner.parent = Some(Arc::downgrade(&current_task));
+
+    // 将task添加到currenttask的child队列
+    let mut current_task_inner = current_task.inner_exclusive_access();
+    current_task_inner.children.push(Arc::clone(&task));
+
+    drop(task_inner);
+    drop(current_task_inner);
+
+    add_task(task.clone());
+    
+    task.pid.0 as isize
 }
