@@ -266,7 +266,7 @@ impl MemorySet {
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
     vpn_range: VPNRange,
-    data_frames: BTreeMap<VirtPageNum, FrameTracker>,
+    data_frames: BTreeMap<VirtPageNum, FrameTracker>,   // 当MapArea被回收之后，地址空间也会回收
     map_type: MapType,
     map_perm: MapPermission,
 }

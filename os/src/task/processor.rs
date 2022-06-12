@@ -60,7 +60,8 @@ pub fn run_tasks() {
             unsafe {
                 __switch(idle_task_cx_ptr, next_task_cx_ptr);
                 // 从switch 返回
-                // println!("hhhhhhhhhhh####### return from switch ######################");
+                // let task = PROCESSOR.exclusive_access().current().unwrap();
+                // println!("hhhhhhhhhhh####### return from switch {} ######################", task.pid.0);
             }
         }
     }

@@ -26,6 +26,7 @@ impl PidAllocator {
             PidHandle(pid)
         } else {
             self.current += 1;
+            println!("alloc pid {}", self.current-1);
             PidHandle(self.current - 1)
         }
     }

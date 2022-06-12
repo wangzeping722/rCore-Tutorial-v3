@@ -93,6 +93,7 @@ impl TaskControlBlock {
     }
     pub fn exec(&self, elf_data: &[u8]) {
         // memory_set with elf program headers/trampoline/trap context/user stack
+        // 从elf中获取新的地址空间，然后替换掉
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
@@ -106,9 +107,10 @@ impl TaskControlBlock {
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
         // initialize trap_cx
+        // 抛弃以前的trap_cx，初始化一个新的cx
         let trap_cx = inner.get_trap_cx();
         *trap_cx = TrapContext::app_init_context(
-            entry_point,
+            entry_point,    // 设置入口地址
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             self.kernel_stack.get_top(),
