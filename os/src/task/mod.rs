@@ -2,11 +2,9 @@ mod context;
 mod switch;
 mod task;
 
-use core::borrow::BorrowMut;
 
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
-use crate::syscall::SyscallInfo;
 use lazy_static::*;
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus, MAX_SYSCALL_NUM};
@@ -24,6 +22,8 @@ struct TaskManagerInner {
     current_task: usize,
 }
 
+const BIG_STRIDE: usize = 1 << 10;
+
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
@@ -31,19 +31,18 @@ lazy_static! {
             TaskControlBlock {
                 task_cx: TaskContext::zero_init(),
                 task_status: TaskStatus::UnInit,
-                id: 0,
-                call: [SyscallInfo{id:0, times:0}; MAX_SYSCALL_NUM],
-                startTime: 0,
+                priority: 1,
+                stride: 0,
+                inititalized: false,
             };
             MAX_APP_NUM
         ];
         for i in 0..num_app {
             tasks[i].task_cx = TaskContext::goto_restore(init_app_cx(i));
             tasks[i].task_status = TaskStatus::Ready;
-            tasks[i].id = i;
-            for i in 0..MAX_SYSCALL_NUM {
-                tasks[i].call[i].id = i;
-            }
+            // 初始化
+            tasks[i].priority = 16;
+            tasks[i].inititalized = true;
         }
         TaskManager {
             num_app,
@@ -60,6 +59,9 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
+        // 加上优先级对应的步长
+        task0.stride += BIG_STRIDE / task0.priority;
+
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -86,13 +88,34 @@ impl TaskManager {
     }
 
     fn find_next_task(&self) -> Option<usize> {
-        let inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        (current + 1..current + self.num_app + 1)
-            .map(|id| id % self.num_app)
-            .find(|id| {
-                inner.tasks[*id].task_status == TaskStatus::Ready
-            })
+        let mut inner = self.inner.exclusive_access();
+
+        // 任务对，分别代表当前任务号和优先级，找出最合适的任务
+        let mut has_task = false;
+        let mut task_pair = (0, usize::MAX);
+        for (id, task) in inner.tasks.iter().enumerate() {
+            // 这里没有考虑溢出
+            if task.stride <= task_pair.1 && 
+                task.inititalized && task.task_status == TaskStatus::Ready {
+                    has_task = true;
+                    task_pair = (id, task.stride);
+                }
+        }
+
+        if !has_task {
+            return None;
+        }
+
+        inner.tasks[task_pair.0].task_status = TaskStatus::Ready;
+
+        // let current = inner.current_task;
+        // (current + 1..current + self.num_app + 1)
+        //     .map(|id| id % self.num_app)
+        //     .find(|id| {
+        //         inner.tasks[*id].task_status == TaskStatus::Ready
+        //     })
+
+        Some(task_pair.0)
     }
 
     fn run_next_task(&self) {
@@ -100,7 +123,12 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+            inner.tasks[next].stride += BIG_STRIDE/inner.tasks[next].priority;
+            
             inner.current_task = next;
+
+            println!("[kernel] current: {}, next: {}", current, next);
+
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
@@ -117,10 +145,10 @@ impl TaskManager {
         }
     }
 
-    fn get_current_task(&self) -> &mut TaskControlBlock {
-        let mut inner = self.inner.exclusive_access();
-        inner.tasks[inner.current_task].borrow_mut()
-    }
+    // fn get_current_task(&self) -> &mut TaskControlBlock {
+    //     let mut inner = self.inner.exclusive_access();
+    //     inner.tasks[inner.current_task].borrow_mut()
+    // }
 }
 
 pub fn run_first_task() {
@@ -149,6 +177,14 @@ pub fn exit_current_and_run_next() {
     run_next_task();
 }
 
-pub fn get_current_task() -> &'static mut TaskControlBlock {
-    TASK_MANAGER.get_current_task()
+// pub fn get_current_task() -> &'static mut TaskControlBlock {
+//     TASK_MANAGER.get_current_task()
+// }
+
+
+pub fn set_priority(prio: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+
+    let task_id = inner.current_task;
+    inner.tasks[task_id].priority = prio;
 }

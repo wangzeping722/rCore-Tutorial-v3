@@ -1,3 +1,5 @@
+use core::arch::asm;
+
 const FD_STDOUT: usize = 1;
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
@@ -13,3 +15,15 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
         }
     }
 }
+
+const STACK_SIZE : usize = 0x1000;
+
+// 获取当前栈指针
+unsafe fn r_sp() -> usize {
+    let sp: usize;
+
+    asm!("mv {}, sp", out(reg) sp);
+
+    sp
+}
+

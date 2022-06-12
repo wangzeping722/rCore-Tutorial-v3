@@ -7,9 +7,10 @@ pub const MAX_SYSCALL_NUM: usize = 500;
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     pub task_cx: TaskContext,
-    pub id: usize,
-    pub call: [SyscallInfo; MAX_SYSCALL_NUM],
-    pub startTime: usize,
+    
+    pub priority: usize,
+    pub stride: usize,
+    pub inititalized: bool
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
