@@ -99,9 +99,11 @@ impl Inode {
             // has the file been created?
             self.find_inode_id(name, root_inode)
         };
+        // 这里先查找文件是否存在
         if self.read_disk_inode(op).is_some() {
             return None;
         }
+        // 分配一个节点用来存储元数据
         // create a new file
         // alloc a inode with an indirect block
         let new_inode_id = fs.alloc_inode();
@@ -112,6 +114,8 @@ impl Inode {
             .modify(new_inode_block_offset, |new_inode: &mut DiskInode| {
                 new_inode.initialize(DiskInodeType::File);
             });
+        
+        // 
         self.modify_disk_inode(|root_inode| {
             // append file in the dirent
             let file_count = (root_inode.size as usize) / DIRENT_SZ;
@@ -130,6 +134,7 @@ impl Inode {
         let (block_id, block_offset) = fs.get_disk_inode_pos(new_inode_id);
         block_cache_sync_all();
         // return inode
+        // 返回文件的inode
         Some(Arc::new(Self::new(
             block_id,
             block_offset,
@@ -138,13 +143,14 @@ impl Inode {
         )))
         // release efs lock automatically by compiler
     }
+
     /// List inodes under current inode
     pub fn ls(&self) -> Vec<String> {
         let _fs = self.fs.lock();
         self.read_disk_inode(|disk_inode| {
             let file_count = (disk_inode.size as usize) / DIRENT_SZ;
             let mut v: Vec<String> = Vec::new();
-            for i in 0..file_count {
+            for i in 0..file_count {    // 便利所有文件目录项
                 let mut dirent = DirEntry::empty();
                 assert_eq!(
                     disk_inode.read_at(i * DIRENT_SZ, dirent.as_bytes_mut(), &self.block_device,),
@@ -155,7 +161,9 @@ impl Inode {
             v
         })
     }
+
     /// Read data from current inode
+    /// 读数据
     pub fn read_at(&self, offset: usize, buf: &mut [u8]) -> usize {
         let _fs = self.fs.lock();
         self.read_disk_inode(|disk_inode| disk_inode.read_at(offset, buf, &self.block_device))

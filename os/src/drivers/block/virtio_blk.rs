@@ -9,7 +9,7 @@ use lazy_static::*;
 use virtio_drivers::{VirtIOBlk, VirtIOHeader};
 
 #[allow(unused)]
-const VIRTIO0: usize = 0x10001000;
+const VIRTIO0: usize = 0x10001000;  // 寄存器的开始地址
 
 pub struct VirtIOBlock(UPSafeCell<VirtIOBlk<'static>>);
 
@@ -43,6 +43,7 @@ impl VirtIOBlock {
     }
 }
 
+// 实现函数
 #[no_mangle]
 pub extern "C" fn virtio_dma_alloc(pages: usize) -> PhysAddr {
     let mut ppn_base = PhysPageNum(0);

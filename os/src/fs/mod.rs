@@ -4,6 +4,7 @@ mod stdio;
 
 use crate::mm::UserBuffer;
 /// File trait
+/// 文件trait
 pub trait File: Send + Sync {
     /// If readable
     fn readable(&self) -> bool;

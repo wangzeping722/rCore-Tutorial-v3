@@ -8,7 +8,7 @@ use spin::Mutex;
 ///An easy file system on block
 pub struct EasyFileSystem {
     ///Real device
-    pub block_device: Arc<dyn BlockDevice>,
+    pub block_device: Arc<dyn BlockDevice>, // 底层设备
     ///Inode bitmap
     pub inode_bitmap: Bitmap,
     ///Data bitmap
@@ -19,24 +19,30 @@ pub struct EasyFileSystem {
 
 type DataBlock = [u8; BLOCK_SZ];
 /// An easy fs over a block device
+/// 块文件系统
 impl EasyFileSystem {
     /// A data block of block size
     pub fn create(
         block_device: Arc<dyn BlockDevice>,
         total_blocks: u32,
-        inode_bitmap_blocks: u32,
+        inode_bitmap_blocks: u32,   // 位图占用的block大小
     ) -> Arc<Mutex<Self>> {
+        // 0 是超级块
         // calculate block size of areas & create bitmaps
         let inode_bitmap = Bitmap::new(1, inode_bitmap_blocks as usize);
         let inode_num = inode_bitmap.maximum();
+        // 存储inode需要的块数量
         let inode_area_blocks =
             ((inode_num * core::mem::size_of::<DiskInode>() + BLOCK_SZ - 1) / BLOCK_SZ) as u32;
         let inode_total_blocks = inode_bitmap_blocks + inode_area_blocks;
+
+
         let data_total_blocks = total_blocks - 1 - inode_total_blocks;
+        // 计算数据位图占用的空间
         let data_bitmap_blocks = (data_total_blocks + 4096) / 4097;
         let data_area_blocks = data_total_blocks - data_bitmap_blocks;
         let data_bitmap = Bitmap::new(
-            (1 + inode_bitmap_blocks + inode_area_blocks) as usize,
+            (1 + inode_bitmap_blocks + inode_area_blocks) as usize, // 开始 block_id
             data_bitmap_blocks as usize,
         );
         let mut efs = Self {
@@ -46,7 +52,9 @@ impl EasyFileSystem {
             inode_area_start_block: 1 + inode_bitmap_blocks,
             data_area_start_block: 1 + inode_total_blocks + data_bitmap_blocks,
         };
-        // clear all blocks
+
+
+        // 将块设备的前 total_blocks 个块清零，因为 easy-fs 要用到它们，这也是为初始化做准备。
         for i in 0..total_blocks {
             get_block_cache(i as usize, Arc::clone(&block_device))
                 .lock()
@@ -57,6 +65,7 @@ impl EasyFileSystem {
                 });
         }
         // initialize SuperBlock
+        // 初始化超级块
         get_block_cache(0, Arc::clone(&block_device)).lock().modify(
             0,
             |super_block: &mut SuperBlock| {
@@ -84,6 +93,7 @@ impl EasyFileSystem {
     /// Open a block device as a filesystem
     pub fn open(block_device: Arc<dyn BlockDevice>) -> Arc<Mutex<Self>> {
         // read SuperBlock
+        // 读超级块
         get_block_cache(0, Arc::clone(&block_device))
             .lock()
             .read(0, |super_block: &SuperBlock| {
@@ -135,6 +145,7 @@ impl EasyFileSystem {
         self.data_bitmap.alloc(&self.block_device).unwrap() as u32 + self.data_area_start_block
     }
     /// Deallocate a data block
+    /// 清空数据块
     pub fn dealloc_data(&mut self, block_id: u32) {
         get_block_cache(block_id as usize, Arc::clone(&self.block_device))
             .lock()

@@ -316,6 +316,7 @@ impl DiskInode {
         block_device: &Arc<dyn BlockDevice>,
     ) -> usize {
         let mut start = offset;
+        // 判断最终读取的数据
         let end = (offset + buf.len()).min(self.size as usize);
         if start >= end {
             return 0;
@@ -388,6 +389,8 @@ impl DiskInode {
         write_size
     }
 }
+
+/// 目录信息
 /// A directory entry
 #[repr(C)]
 pub struct DirEntry {

@@ -9,6 +9,7 @@ const BLOCK_SZ: usize = 512;
 
 struct BlockFile(Mutex<File>);
 
+// 实现Trait, 利用文件模拟文件系统
 impl BlockDevice for BlockFile {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
         let mut file = self.0.lock().unwrap();
@@ -103,6 +104,7 @@ fn efs_test() -> std::io::Result<()> {
     let root_inode = EasyFileSystem::root_inode(&efs);
     root_inode.create("filea");
     root_inode.create("fileb");
+    root_inode.create("wangzeping");
     for name in root_inode.ls() {
         println!("{}", name);
     }
@@ -112,6 +114,7 @@ fn efs_test() -> std::io::Result<()> {
     //let mut buffer = [0u8; 512];
     let mut buffer = [0u8; 233];
     let len = filea.read_at(0, &mut buffer);
+    println!("{}", core::str::from_utf8(&buffer[..len]).unwrap());
     assert_eq!(greet_str, core::str::from_utf8(&buffer[..len]).unwrap(),);
 
     let mut random_str_test = |len: usize| {
