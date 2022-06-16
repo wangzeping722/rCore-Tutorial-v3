@@ -1,3 +1,4 @@
+
 use crate::config::PAGE_SIZE;
 use crate::task::{
     suspend_current_and_run_next,
@@ -144,10 +145,11 @@ pub fn sys_spawn(path: *const u8) -> isize {
     // 获得当前进程用户态页表
     let token = current_user_token();
     let path = translated_str(token, path);
-
-    if let Some(data) = get_app_data_by_name(path.as_str()) {
+    if let Some(data) = open_file(path.as_str(), OpenFlags::RDONLY) {
+        let data = data.read_all();
+        println!("{} {:?}", path.as_str(), data.len());
         // 创建新进程，拷贝代码段
-        spawn(data)
+        spawn(data.as_slice())
     } else {
         -1
     }

@@ -9,6 +9,7 @@ use lazy_static::*;
 use bitflags::*;
 use alloc::vec::Vec;
 use super::File;
+use super::stat::StatMode;
 use crate::mm::UserBuffer;
 
 pub struct OSInode {
@@ -156,4 +157,35 @@ impl File for OSInode {
         }
         total_write_size
     }
+
+    fn get_inode_number(&self) -> usize {
+        self.inner.exclusive_access().inode.get_inode_id()
+    }
+    
+    fn get_file_type(&self) -> StatMode {
+        if self.inner.exclusive_access().inode.is_dir() {
+            StatMode::DIR
+        } else {
+            StatMode::FILE
+        }
+    }
+}
+
+
+pub fn link_file(path_old: &str, path_new: &str) -> bool {
+    if let Some(inode_old) = ROOT_INODE.find(path_old) {
+        ROOT_INODE.copy(inode_old.get_inode_id(), path_new);
+        true
+    } else {
+        false
+    }
+}
+
+pub fn unlink_file(path: &str) -> bool {
+    println!("Unlink : {}", path);
+    ROOT_INODE.delete_dir(path)
+}
+
+pub fn get_nlink_num(inode_id: usize) -> usize {
+    ROOT_INODE.count_nlink(inode_id) as usize
 }

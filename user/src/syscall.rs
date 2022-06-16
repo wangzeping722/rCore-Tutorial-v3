@@ -91,17 +91,18 @@ pub fn sys_linkat(
     new_path: &str,
     flags: usize,
 ) -> isize {
-    syscall6(
-        SYSCALL_LINKAT,
-        [
-            old_dirfd,
-            old_path.as_ptr() as usize,
-            new_dirfd,
-            new_path.as_ptr() as usize,
-            flags,
-            0,
-        ],
-    )
+    // syscall6(
+    //     SYSCALL_LINKAT,
+    //     [
+    //         old_dirfd,
+    //         old_path.as_ptr() as usize,
+    //         new_dirfd,
+    //         new_path.as_ptr() as usize,
+    //         flags,
+    //         0,
+    //     ],
+    // )
+    syscall(SYSCALL_LINKAT, [old_path.as_ptr() as usize, new_path.as_ptr() as usize, 0])
 }
 
 pub fn sys_unlinkat(dirfd: usize, path: &str, flags: usize) -> isize {

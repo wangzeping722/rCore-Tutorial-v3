@@ -26,8 +26,6 @@ pub use processor::{
 pub use manager::add_task;
 pub use pid::{PidHandle, pid_alloc, KernelStack};
 
-use self::manager::TASK_MANAGER;
-
 pub fn suspend_current_and_run_next() {
     // There must be an application running.
     let task = take_current_task().unwrap();
