@@ -1,4 +1,6 @@
 #![allow(unused)]
+use core::arch::asm;
+use core::arch::global_asm;
 
 const SBI_SET_TIMER: usize = 0;
 const SBI_CONSOLE_PUTCHAR: usize = 1;

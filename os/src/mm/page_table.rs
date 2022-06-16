@@ -147,6 +147,13 @@ impl PageTable {
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
     }
+
+    pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+        match self.find_pte(vpn) {
+            None => false,
+            Some(x) => x.is_valid(),
+        }
+    }
 }
 
 pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {

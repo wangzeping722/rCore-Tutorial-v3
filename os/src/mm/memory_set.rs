@@ -17,6 +17,9 @@ use crate::config::{
     MMIO,
 };
 
+use core::arch::asm;
+use core::arch::global_asm;
+
 extern "C" {
     fn stext();
     fn etext();
@@ -230,6 +233,15 @@ impl MemorySet {
         //*self = Self::new_bare();
         self.areas.clear();
     }
+
+    pub fn find_vpn(&self, vpn: VirtPageNum) -> bool {
+        self.page_table.find_vpn(vpn)
+    }
+
+    pub fn unmap(&mut self, vpn: VirtPageNum) {
+        self.areas[0].unmap_one(&mut self.page_table, vpn)
+    }
+
 }
 
 pub struct MapArea {

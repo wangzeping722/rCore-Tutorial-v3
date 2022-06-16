@@ -1,15 +1,16 @@
+use crate::config::PAGE_SIZE;
 use crate::task::{
     suspend_current_and_run_next,
     exit_current_and_run_next,
     current_task,
     current_user_token,
-    add_task,
+    add_task, spawn, mmap, munmap,
 };
 use crate::timer::get_time_us;
 use crate::mm::{
     translated_str,
     translated_refmut,
-    translated_ref,
+    translated_ref, translated_byte_buffer,
 };
 use crate::fs::{
     open_file,
@@ -33,17 +34,6 @@ pub fn sys_exit(exit_code: i32) -> ! {
 
 pub fn sys_yield() -> isize {
     suspend_current_and_run_next();
-    0
-}
-
-pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
-    let _us = get_time_us();
-    // unsafe {
-    //     *ts = TimeVal {
-    //         sec: us / 1_000_000,
-    //         usec: us % 1_000_000,
-    //     };
-    // }
     0
 }
 
@@ -125,5 +115,93 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     } else {
         -2
     }
-    // ---- release current PCB automatically
+    // ---- release current PCB lock automatically
+}
+
+pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
+    let _us = get_time_us();
+    // unsafe {
+    //     *ts = TimeVal {
+    //         sec: us / 1_000_000,
+    //         usec: us % 1_000_000,
+    //     };
+    // }
+    let token = current_user_token();
+
+    let mut buffers = translated_byte_buffer(token, _ts as *const u8, 16);
+    let buffers = buffers[0].as_mut_ptr();
+    let _ts = buffers as *mut TimeVal;
+    unsafe {
+        *_ts = TimeVal {
+            sec: _us / 1_000_000,
+            usec: _us % 1_000_000,
+        };
+    }
+    0
+}
+
+pub fn sys_spawn(path: *const u8) -> isize {
+    // 获得当前进程用户态页表
+    let token = current_user_token();
+    let path = translated_str(token, path);
+
+    if let Some(data) = get_app_data_by_name(path.as_str()) {
+        // 创建新进程，拷贝代码段
+        spawn(data)
+    } else {
+        -1
+    }
+}
+
+
+const MAX_MAP_SIZE: usize = 1 << 30;
+
+pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
+    // 参数校验
+    if len == 0 {
+        return 0;
+    }
+
+    if len > MAX_MAP_SIZE {
+        return -1;
+    }
+
+    // 地址未对齐
+    if start & PAGE_SIZE - 1 != 0 {
+        return -1
+    }
+
+    if ((port & !0x7) != 0) || ((port & 0x7) == 0) {
+        return  -1;
+    }
+
+    // 长度向上对齐取整
+    let len = (len+PAGE_SIZE-1)&(!(PAGE_SIZE-1));
+
+    let ret = mmap(start, len, port);
+
+    ret
+}
+
+pub fn sys_munmap(start: usize, len: usize) -> isize {
+    // 参数校验
+    if len == 0 {
+        return 0;
+    }
+
+    if len > MAX_MAP_SIZE {
+        return -1;
+    }
+
+    // 地址未对齐
+    if start & PAGE_SIZE - 1 != 0 {
+        return -1
+    }
+
+    // 长度向上对齐取整
+    let len = (len+PAGE_SIZE-1)&(!(PAGE_SIZE-1));
+
+    let ret = munmap(start, len);
+
+    ret
 }

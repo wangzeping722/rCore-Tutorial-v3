@@ -4,7 +4,8 @@
 #![feature(asm)]
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
-
+use core::arch::asm;
+use core::arch::global_asm;
 extern crate alloc;
 
 #[macro_use]

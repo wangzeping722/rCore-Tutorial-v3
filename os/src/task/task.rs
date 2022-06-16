@@ -76,6 +76,7 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        // push a task context which goes to trap_return to the top of kernel stack
         let task_control_block = Self {
             pid: pid_handle,
             kernel_stack,
@@ -148,7 +149,8 @@ impl TaskControlBlock {
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
         // initialize trap_cx
-        let mut trap_cx = TrapContext::app_init_context(
+        let trap_cx = inner.get_trap_cx();
+        *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
@@ -157,7 +159,6 @@ impl TaskControlBlock {
         );
         trap_cx.x[10] = args.len();
         trap_cx.x[11] = argv_base;
-        *inner.get_trap_cx() = trap_cx;
         // **** release current PCB
     }
     pub fn fork(self: &Arc<TaskControlBlock>) -> Arc<TaskControlBlock> {

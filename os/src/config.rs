@@ -13,10 +13,10 @@ pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
 #[cfg(feature = "board_k210")]
 pub const CLOCK_FREQ: usize = 403000000 / 62;
 
-#[cfg(feature = "board_qemu")]
+#[cfg(not(any(feature = "board_k210")))]
 pub const CLOCK_FREQ: usize = 12500000;
 
-#[cfg(feature = "board_qemu")]
+#[cfg(not(any(feature = "board_k210")))]
 pub const MMIO: &[(usize, usize)] = &[
     (0x10001000, 0x1000),
 ];
