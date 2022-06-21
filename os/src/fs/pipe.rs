@@ -8,6 +8,7 @@ use crate::task::suspend_current_and_run_next;
 pub struct Pipe {
     readable: bool,
     writable: bool,
+    // 数据buffer，对头出，对尾进
     buffer: Arc<UPSafeCell<PipeRingBuffer>>,
 }
 

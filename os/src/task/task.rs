@@ -173,6 +173,7 @@ impl TaskControlBlock {
         *inner.get_trap_cx() = trap_cx;
         // **** release current PCB
     }
+    
     pub fn fork(self: &Arc<TaskControlBlock>) -> Arc<TaskControlBlock> {
         // ---- hold parent PCB lock
         let mut parent_inner = self.inner_exclusive_access();

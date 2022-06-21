@@ -13,6 +13,7 @@ pub fn main() -> i32 {
     // create pipe
     let mut pipe_fd = [0usize; 2];
     pipe(&mut pipe_fd);
+    // 存储pipe打开的文件描述符
     // read end
     assert_eq!(pipe_fd[0], 3);
     // write end
